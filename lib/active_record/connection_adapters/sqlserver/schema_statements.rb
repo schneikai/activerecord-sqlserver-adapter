@@ -246,12 +246,28 @@ module ActiveRecord
                          else
                            ci[:type]
                          end
+
+            # KS: The sql to select to column defaults for views was wrong.
+            # real_table_name was in the format of "dbo.pcPhotoDownload" and we
+            # need to split the schema and the table name just like they did it
+            # above when quering column definitions.
+
+            # if ci[:default_value].nil? && schema_cache.view_names.include?(table_name)
+            #   real_table_name = table_name_or_views_table_name(table_name)
+            #   real_column_name = views_real_column_name(table_name,ci[:name])
+            #   col_default_sql = "SELECT c.COLUMN_DEFAULT FROM #{db_name_with_period}INFORMATION_SCHEMA.COLUMNS c WHERE c.TABLE_NAME = '#{real_table_name}' AND c.COLUMN_NAME = '#{real_column_name}'"
+            #   ci[:default_value] = select_value col_default_sql, 'SCHEMA'
+            # end
+
             if ci[:default_value].nil? && schema_cache.view_names.include?(table_name)
               real_table_name = table_name_or_views_table_name(table_name)
+              real_table_name = Utils.unqualify_table_name(real_table_name)
+              real_table_schema = Utils.unqualify_table_schema(real_table_name)
               real_column_name = views_real_column_name(table_name,ci[:name])
-              col_default_sql = "SELECT c.COLUMN_DEFAULT FROM #{db_name_with_period}INFORMATION_SCHEMA.COLUMNS c WHERE c.TABLE_NAME = '#{real_table_name}' AND c.COLUMN_NAME = '#{real_column_name}'"
+              col_default_sql = "SELECT c.COLUMN_DEFAULT FROM #{db_name_with_period}INFORMATION_SCHEMA.COLUMNS c WHERE c.TABLE_NAME = '#{real_table_name}' AND c.TABLE_SCHEMA = #{real_table_schema.blank? ? "schema_name()" : "'#{real_table_schema}'"} AND c.COLUMN_NAME = '#{real_column_name}'"
               ci[:default_value] = select_value col_default_sql, 'SCHEMA'
             end
+            
             ci[:default_value] = case ci[:default_value]
                                  when nil, '(null)', '(NULL)'
                                    nil
