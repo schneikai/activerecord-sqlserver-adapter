@@ -267,7 +267,9 @@ module ActiveRecord
               col_default_sql = "SELECT c.COLUMN_DEFAULT FROM #{db_name_with_period}INFORMATION_SCHEMA.COLUMNS c WHERE c.TABLE_NAME = '#{real_table_name}' AND c.TABLE_SCHEMA = #{real_table_schema.blank? ? "schema_name()" : "'#{real_table_schema}'"} AND c.COLUMN_NAME = '#{real_column_name}'"
               ci[:default_value] = select_value col_default_sql, 'SCHEMA'
             end
-            
+
+            ci[:default_value] = nil if ci[:name] == "file" && table_name == "photos"
+
             ci[:default_value] = case ci[:default_value]
                                  when nil, '(null)', '(NULL)'
                                    nil
